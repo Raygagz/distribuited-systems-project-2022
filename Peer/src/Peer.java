@@ -6,8 +6,35 @@
 import java.io.*;
 import java.net.*;
 
+import Configurations.ServerInformation;
+
 public class Peer {
 	public static void main (String args[]) throws Exception {
+		DatagramSocket socket = new DatagramSocket();
+		InetAddress IPAddress = InetAddress.getByName(ServerInformation.IP);
+		
+		BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in));
+		String sentence = userInput.readLine();
+		
+		byte[] outputData = new byte[sentence.length()];
+		byte[] responseData = new byte[sentence.length()];
+		
+		outputData = sentence.getBytes();
+		
+		DatagramPacket outputPacket = new DatagramPacket(outputData, outputData.length, IPAddress, ServerInformation.Port);
+		
+		socket.send(outputPacket);
+		
+		DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length);
+		
+		socket.receive(responsePacket);
+		
+		String responseSentence = new String(responsePacket.getData());
+		System.out.println(responseSentence);
+		
+		socket.close();
+		
+		/*
 		Socket s = new Socket("localhost", 9000);
 		
 		OutputStream os = s.getOutputStream();
@@ -33,9 +60,6 @@ public class Peer {
 		String response = serverReader.readLine();
 		System.out.println(response);
 		s.close();
-	}
-	
-	public static void sendInformation () {
-		
+		*/
 	}
 }

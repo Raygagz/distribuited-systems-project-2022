@@ -1,3 +1,4 @@
+package DTO;
 import java.util.UUID;
 
 public class FileInformation {

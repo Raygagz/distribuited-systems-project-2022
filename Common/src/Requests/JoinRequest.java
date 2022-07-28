@@ -1,17 +1,19 @@
 package Requests;
 
+import java.lang.reflect.Array;
+import java.util.Iterator;
 import java.util.UUID;
 
-import DTO.FileInformation;
 import Enums.RequestType;
 
+@SuppressWarnings("serial")
 public class JoinRequest extends Request {
-	public UUID peerID;
-	public FileInformation[] files;
+	public UUID PeerID;
+	public String[] FileNames;
 	
-	public JoinRequest (UUID peerID, FileInformation[] files) {
-		this.requestType = RequestType.JOIN;
-		this.peerID = peerID;
-		this.files = files;
+	public JoinRequest (UUID peerID, String[] fileNames) {
+		this.Type = RequestType.JOIN;
+		this.PeerID = peerID;
+		this.FileNames = fileNames;
 	}
 }

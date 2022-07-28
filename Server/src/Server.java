@@ -4,7 +4,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import Configurations.ServerInformation;
+import Networking.ServerInformation;
 
 class Server {
 
@@ -22,18 +22,5 @@ class Server {
 			ServiceThread thread = new ServiceThread(socket, receivedPacket);
 			thread.start();
 		}
-		
-		/*
-		ServerSocket serverSocket = new ServerSocket(10098);
-		
-		while (true) {
-			System.out.println("Waiting for connection at port 10098.");
-			Socket s = serverSocket.accept();
-			System.out.println("Connection established from " + s.getInetAddress());
-
-			ServiceThread thread = new ServiceThread(s);
-			thread.start();
-		}
-		*/
 	}
 }

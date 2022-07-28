@@ -1,7 +1,10 @@
 package Requests;
 
+import java.io.Serializable;
+
 import Enums.RequestType;
 
-public abstract class Request {
-	RequestType requestType;
+@SuppressWarnings("serial")
+public abstract class Request implements Serializable {
+	public RequestType Type;
 }

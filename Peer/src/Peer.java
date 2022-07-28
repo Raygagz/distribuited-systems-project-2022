@@ -5,61 +5,96 @@
 
 import java.io.*;
 import java.net.*;
+import java.util.UUID;
 
-import Configurations.ServerInformation;
+import Communication.Messages;
+import Networking.PeerInformation;
+import Networking.ServerInformation;
+import Requests.JoinRequest;
+import Requests.Request;
+import Services.FileService;
 
 public class Peer {
 	public static void main (String args[]) throws Exception {
 		DatagramSocket socket = new DatagramSocket();
-		InetAddress IPAddress = InetAddress.getByName(ServerInformation.IP);
+		BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
+		String userInput = null;
+		int selection = 0;
 		
-		BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in));
-		String sentence = userInput.readLine();
-		
-		byte[] outputData = new byte[sentence.length()];
-		byte[] responseData = new byte[sentence.length()];
-		
-		outputData = sentence.getBytes();
-		
-		DatagramPacket outputPacket = new DatagramPacket(outputData, outputData.length, IPAddress, ServerInformation.Port);
-		
-		socket.send(outputPacket);
-		
-		DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length);
-		
-		socket.receive(responsePacket);
-		
-		String responseSentence = new String(responsePacket.getData());
-		System.out.println(responseSentence);
+		do{
+			System.out.println(
+				"1. JOIN\n" +
+				"2. SEARCH\n" +
+				"3. DOWNLOAD\n" +
+				"4. LEAVE\n"
+			);
+			
+			userInput = consoleReader.readLine();
+			try{
+	            selection = Integer.parseInt(userInput);
+	        }
+	        catch (NumberFormatException ex){
+	            continue;
+	        }
+			
+			switch(selection) {
+			case 1:
+				Join(socket);
+				break;
+			case 2:
+				break;
+			case 3:
+				break;
+			case 4:
+				break;
+			default:
+				continue;
+			}
+			
+		} while(!userInput.isEmpty());	
 		
 		socket.close();
+	}
+	
+	private static void SendRequestToServer(DatagramSocket socket, Request request) throws IOException {
+		InetAddress serverAddress = InetAddress.getByName(ServerInformation.IP);
 		
-		/*
-		Socket s = new Socket("localhost", 9000);
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		ObjectOutput oo = new ObjectOutputStream(outputStream);
+		oo.writeObject(request);
+		oo.close();
 		
-		OutputStream os = s.getOutputStream();
-		DataOutputStream serverWriter = new DataOutputStream(os);
+		DatagramPacket outputPacket = new DatagramPacket(outputStream.toByteArray(), outputStream.toByteArray().length, serverAddress, ServerInformation.Port);
 		
-		InputStreamReader isrServer = new InputStreamReader(s.getInputStream());
-		BufferedReader serverReader = new BufferedReader(isrServer);
+		socket.send(outputPacket);
+	}
+	
+	private static String ReceiveMessageFromServer(DatagramSocket socket) throws IOException {
+		byte[] buffer = new byte[1024];
+		DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
+		socket.receive(responsePacket);
 
-		BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
-		String sentence;  
-		sentence = inFromUser.readLine();
+		String response = new String(responsePacket.getData(), 0, responsePacket.getLength());
+		return response;
+	}
+	
+	private static void Join(DatagramSocket socket) throws IOException {
+		String[] fileNames = FileService.getFilesFromPath(Configuration.FILES_RELATIVE_PATH);
+		JoinRequest request = new JoinRequest(UUID.randomUUID(), fileNames);
 		
-		while (sentence.compareTo("") != 0) {
-			serverWriter.writeBytes(sentence + "\n");
+		SendRequestToServer(socket, request);
 
-			String response = serverReader.readLine();
-			System.out.println(response);
-			
-			sentence = inFromUser.readLine();
+		String response = ReceiveMessageFromServer(socket);
+		
+		if(response.equals(Messages.SuccessfulJoin)) {
+			System.out.println(
+				"Sou peer " +
+				InetAddress.getLocalHost() + ":" + PeerInformation.Port +
+				" com arquivos " +
+				String.join(" ", fileNames)
+			);
 		}
 		
-		serverWriter.writeBytes(sentence + "\n");
-		String response = serverReader.readLine();
 		System.out.println(response);
-		s.close();
-		*/
 	}
 }

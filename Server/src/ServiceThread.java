@@ -1,38 +1,67 @@
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
 
+import Communication.Messages;
+import Requests.JoinRequest;
+import Requests.Request;
+import Services.FileService;
+
 public class ServiceThread extends Thread {
 	private DatagramSocket socket;
-	private DatagramPacket packet;
+	private DatagramPacket receivedPacket;
 	
 	public ServiceThread(DatagramSocket socket, DatagramPacket packet) {
 		this.socket = socket;
-		this.packet = packet;
+		this.receivedPacket = packet;
 	}
 	
 	public void run() {
 		try {
-			InetAddress peerIP = packet.getAddress();
-			int peerPort = packet.getPort();
+			InetAddress PeerAddress = receivedPacket.getAddress();
+			int PeerPort = receivedPacket.getPort();
 			
-			System.out.println("Peer " + peerIP + ":" + Integer.toString(peerPort) + " adicionado com ");
+			ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(receivedPacket.getData()));
+			Request request = (Request) inputStream.readObject();
+			inputStream.close();
 			
-			String sentence = new String(packet.getData(), 0, packet.getLength());
+			/*
+			 * •	Quando receber o JOIN, print “Peer [IP]:[porta] adicionado com arquivos [só nomes dos arquivos].
+			 * •	Quando receber o SEARCH, print “Peer [IP]:[porta] solicitou arquivo [só nome do arquivo].
+			 * •	Se não receber o ALIVE_OK, print “Peer [IP]:[porta] morto. Eliminando seus arquivos [só nome dos arquivos]”.
+			 */
 			
-			while(sentence.compareTo("batata") == 0) {
-				continue;
+			switch(request.Type) {
+				case JOIN:
+					JoinRequest joinRequest = (JoinRequest) request;
+					System.out.println(
+						"Peer " +
+						PeerAddress + ":" + Integer.toString(PeerPort) +
+						" adicionado com " +
+						String.join(" ", joinRequest.FileNames)
+					);
+					
+					this.sendToPeer(PeerAddress, PeerPort, Messages.SuccessfulJoin);
+					
+					break;
+				case LEAVE:
+					break;
+				case SEARCH:
+					break;
+				case UPDATE:
+					break;
+				case ALIVE:
+					break;
+				default:
+					break;
 			}
-			
-			byte[] outputData = new byte[sentence.length()];
-			outputData = sentence.getBytes();
-			
-			DatagramPacket outputPacket = new DatagramPacket(outputData, outputData.length, peerIP, peerPort);
-			socket.send(outputPacket);
 			/*
 			BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 			String input = br.readLine();
@@ -48,5 +77,11 @@ public class ServiceThread extends Thread {
 			connection.close();
 			*/
 		} catch (Exception e) {e.printStackTrace();}
+	}
+	
+	private void sendToPeer(InetAddress peerAddress, int peerPort, String message) throws IOException {
+		byte[] outputBytes = message.getBytes();
+		DatagramPacket outputPacket = new DatagramPacket(outputBytes, outputBytes.length, peerAddress, peerPort);
+		socket.send(outputPacket);
 	}
 }

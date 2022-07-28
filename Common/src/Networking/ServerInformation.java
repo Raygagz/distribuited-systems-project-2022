@@ -1,4 +1,4 @@
-package Configurations;
+package Networking;
 
 public class ServerInformation {
 	public static final String IP = "127.0.0.1";

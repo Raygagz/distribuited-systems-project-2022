@@ -5,5 +5,6 @@ public enum RequestType {
 	LEAVE,
 	SEARCH,
 	UPDATE,
-	ALIVE
+	ALIVE,
+	DOWNLOAD,
 }

@@ -1,3 +1,5 @@
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -7,18 +9,27 @@ import java.util.List;
 
 import Networking.ConnectionInformation;
 import Networking.ServerInformation;
+import Requests.Request;
+import Services.DispatcherService;
 
 class Server {
 	private static List<PeerInformation> Peers = new ArrayList<PeerInformation>();
 
 	public static void main (String args[]) throws Exception {
-		DatagramSocket socket = new DatagramSocket(ServerInformation.ConnectionInformation.Port);
+		// Vários clientes conseguem acessar um socket static?
+		DatagramSocket socket = new DatagramSocket(ServerInformation.ConnectionInformation.Port, ServerInformation.ConnectionInformation.Address);
 		
 		while (true) {
 			DatagramPacket receivedPacket = new DatagramPacket(new byte[1024], 1024);
 			socket.receive(receivedPacket);
 			
-			RequestHandlerThread thread = new RequestHandlerThread(socket, receivedPacket);
+			ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(receivedPacket.getData()));
+			Request request = (Request) inputStream.readObject();
+			inputStream.close();
+
+			ConnectionInformation peerConnectionInformation = new ConnectionInformation(receivedPacket.getAddress(), receivedPacket.getPort());;
+			
+			RequestHandlerThread thread = new RequestHandlerThread(socket, request, peerConnectionInformation);
 			thread.start();
 		}
 	}
@@ -34,7 +45,7 @@ class Server {
 	
 	public static void AddPeerInformation(PeerInformation peerInformation) {
 		// Avoid duplicates
-		if(GetPeerInformation(peerInformation.ConnectionInformation) != null) {
+		if(GetPeerInformation(peerInformation.ConnectionInformation) == null) {
 			Peers.add(peerInformation);
 		}
 	}

@@ -4,9 +4,11 @@
 //
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
@@ -18,9 +20,11 @@ import java.util.List;
 
 import Communication.Messages;
 import Enums.RequestType;
+import Networking.ConnectionInformation;
 import Networking.ServerInformation;
 import Requests.JoinRequest;
 import Requests.Request;
+import Requests.SearchRequest;
 import Server.PeerServer;
 import Services.DispatcherService;
 import Services.FileService;
@@ -52,7 +56,8 @@ public class Peer {
 	            selection = RequestType.valueOf(userInput[0]);
 	            params = Arrays.copyOfRange(userInput, 1, userInput.length);
 	        }
-	        catch (IllegalArgumentException | ArrayIndexOutOfBoundsException ex){
+	        catch (IllegalArgumentException | ArrayIndexOutOfBoundsException e){
+	        	e.printStackTrace();
 	            continue;
 	        }
 			
@@ -65,7 +70,8 @@ public class Peer {
 					FileFolderPath = params[2];
 					Join();
 				}
-				catch (NumberFormatException | ArrayIndexOutOfBoundsException ex) {
+				catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+					e.printStackTrace();
 					continue;
 				}
 				break;
@@ -76,7 +82,8 @@ public class Peer {
 					String fileName = params[0];
 					Search(fileName);
 				}
-				catch (ArrayIndexOutOfBoundsException ex) {
+				catch (ArrayIndexOutOfBoundsException e) {
+					e.printStackTrace();
 					continue;
 				}
 				break;
@@ -88,7 +95,8 @@ public class Peer {
 					int seederPort = Integer.parseInt(params[1]);
 					Download(seederAddress, seederPort);
 				}
-				catch (NumberFormatException | ArrayIndexOutOfBoundsException ex) {
+				catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+					e.printStackTrace();
 					continue;
 				}
 				break;
@@ -122,6 +130,17 @@ public class Peer {
 		return response;
 	}
 	
+	private static List<ConnectionInformation> ReceiveConnectionInformationListFromServer() throws IOException, ClassNotFoundException {
+		DatagramPacket receivedPacket = new DatagramPacket(new byte[1024], 1024);
+		UDPSocket.receive(receivedPacket);
+		
+		ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(receivedPacket.getData()));
+		List<ConnectionInformation> connectionInformations = (List<ConnectionInformation>) inputStream.readObject();
+		inputStream.close();
+		
+		return connectionInformations;
+	}
+	
 	private static void Join() throws IOException {
 		UDPSocket = new DatagramSocket(Port, Address);
 		
@@ -141,12 +160,22 @@ public class Peer {
 				String.join(" ", fileNames)
 			);
 			Joined = true;
-			StartTCPServer();
+			//StartTCPServer();
 		}
 	}
 	
-	private static void Search(String fileName) {
+	private static void Search(String fileName) throws IOException {
+		SearchRequest request = new SearchRequest(fileName);
 		
+		SendRequestToServer(request);
+		
+		try {
+			List<ConnectionInformation> connectionInformationPeersWithFile = ReceiveConnectionInformationListFromServer();
+			System.out.println("test");
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private static void Download(InetAddress seederAddress, int seederPort) {

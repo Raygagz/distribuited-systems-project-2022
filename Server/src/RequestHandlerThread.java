@@ -20,41 +20,39 @@ import Services.DispatcherService;
 public class RequestHandlerThread extends Thread {
 	private final DatagramSocket ServerSocket;
 	private final ConnectionInformation PeerConnectionInformation;
-	private final byte[] Data;
+	private final Request Request;
 	
-	public RequestHandlerThread(DatagramSocket serverSocket, DatagramPacket receivedPacket) {
+	public RequestHandlerThread(DatagramSocket serverSocket, Request request, ConnectionInformation peerConnectionInformation) {
 		this.ServerSocket = serverSocket;
-		this.PeerConnectionInformation = new ConnectionInformation(receivedPacket.getAddress(), receivedPacket.getPort());
-		this.Data = receivedPacket.getData();
+		this.PeerConnectionInformation = peerConnectionInformation;
+		this.Request = request;
 	}
 	
 	public void run() {
 		try {
-			ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(Data));
-			Request request = (Request) inputStream.readObject();
-			inputStream.close();
-			
-			switch(request.Type) {
+			switch(Request.Type) {
 				case JOIN:
-					JoinRequest joinRequest = (JoinRequest) request;
+					JoinRequest joinRequest = (JoinRequest) Request;
 					PeerJoin(joinRequest);
 					break;
 				case LEAVE:
-					LeaveRequest leaveRequest = (LeaveRequest) request;
+					LeaveRequest leaveRequest = (LeaveRequest) Request;
 					PeerLeave(leaveRequest);
 					break;
 				case SEARCH:
-					SearchRequest searchRequest = (SearchRequest) request;
+					SearchRequest searchRequest = (SearchRequest) Request;
 					PeerSearch(searchRequest);
 					break;
 				case UPDATE:
-					UpdateRequest updateRequest = (UpdateRequest) request;
+					UpdateRequest updateRequest = (UpdateRequest) Request;
 					PeerUpdate(updateRequest);
 					break;
 				default:
 					break;
 			}
-		} catch (Exception e) {
+		}
+		catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	
@@ -64,8 +62,8 @@ public class RequestHandlerThread extends Thread {
 			DatagramPacket outputPacket = new DatagramPacket(outputBytes, outputBytes.length, PeerConnectionInformation.Address, PeerConnectionInformation.Port);
 			ServerSocket.send(outputPacket);
 		}
-		catch (IOException ex) {
-			// Timeout
+		catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	private void SendToPeer(Object object) throws IOException {

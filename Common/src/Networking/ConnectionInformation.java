@@ -1,9 +1,11 @@
 package Networking;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class ConnectionInformation {
+@SuppressWarnings("serial")
+public class ConnectionInformation implements Serializable {
 	public final InetAddress Address;
 	public final int Port;
 	
@@ -16,7 +18,8 @@ public class ConnectionInformation {
 		try {
 			tempAddress = InetAddress.getByName(address);
 		}
-		catch (UnknownHostException ex) {
+		catch (UnknownHostException e) {
+			e.printStackTrace();
 		}
 		
 		this.Address = tempAddress;

@@ -20,6 +20,7 @@ public class PeerServer extends Thread {
 				thread.start();
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 }

@@ -44,7 +44,6 @@ class Server {
 	}
 	
 	public static void AddPeerInformation(PeerInformation peerInformation) {
-		// Avoid duplicates
 		if(GetPeerInformation(peerInformation.ConnectionInformation) == null) {
 			Peers.add(peerInformation);
 		}

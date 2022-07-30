@@ -25,4 +25,16 @@ public class ConnectionInformation implements Serializable {
 		this.Address = tempAddress;
 		this.Port = port;
 	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+	    if (o == null || getClass() != o.getClass()) return false;
+	    ConnectionInformation that = (ConnectionInformation) o;
+		return (
+			this.Address.toString().compareTo(that.Address.toString()) == 0 &&
+			this.Port == that.Port
+		);
+				
+	}
 }

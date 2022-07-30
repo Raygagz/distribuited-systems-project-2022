@@ -5,10 +5,12 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class PeerServer extends Thread {
-	private ServerSocket ServerSocket = null;
+	private final ServerSocket ServerSocket;
+	private final String FileFolderPath;
 	
-	public PeerServer(InetAddress address, int port) throws IOException {
+	public PeerServer(InetAddress address, int port, String fileFolderPath) throws IOException {
 		ServerSocket = new ServerSocket(port, 0, address);
+		FileFolderPath = fileFolderPath;
 	}
 	
 	public void run() {
@@ -16,7 +18,7 @@ public class PeerServer extends Thread {
 			while (true) {
 				Socket socket;
 				socket = ServerSocket.accept();
-				ServerThread thread = new ServerThread(socket);
+				RequestHandlerThread thread = new RequestHandlerThread(socket, FileFolderPath);
 				thread.start();
 			}
 		} catch (Exception e) {

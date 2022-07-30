@@ -1,20 +1,20 @@
-//
-//  TCPClient.java
-//  Kurose & Ross
-//
-
+package Peer;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
@@ -23,6 +23,7 @@ import Enums.RequestType;
 import Networking.ConnectionInformation;
 import Networking.ServerInformation;
 import Requests.JoinRequest;
+import Requests.LeaveRequest;
 import Requests.Request;
 import Requests.SearchRequest;
 import Server.PeerServer;
@@ -33,6 +34,7 @@ public class Peer {
 	private static DatagramSocket UDPSocket = null;
 	private static InetAddress Address = null;
 	private static int Port = 0;
+	private static String CurrentSearchedFileName = null;
 	private static String FileFolderPath = null;
 	
 	private static Boolean Joined = false;
@@ -46,9 +48,9 @@ public class Peer {
 		do{
 			System.out.println(
 				"JOIN <address> <port> <pathToFolderWithFiles>\n" +
-				"SEARCH\n" +
-				"DOWNLOAD\n" +
-				"LEAVE\n"
+				"SEARCH <fileName>\n" +
+				"DOWNLOAD <address> <port>\n" +
+				"LEAVE"
 			);
 			
 			userInput = consoleReader.readLine().split(" ");
@@ -79,8 +81,8 @@ public class Peer {
 			case SEARCH:
 				if (!Joined) continue;
 				try {
-					String fileName = params[0];
-					Search(fileName);
+					CurrentSearchedFileName = params[0];
+					Search();
 				}
 				catch (ArrayIndexOutOfBoundsException e) {
 					e.printStackTrace();
@@ -89,7 +91,7 @@ public class Peer {
 				break;
 				
 			case DOWNLOAD:
-				if (!Joined) continue;
+				if (!Joined || CurrentSearchedFileName == null) continue;
 				try {
 					InetAddress seederAddress = InetAddress.getByName(params[0]);
 					int seederPort = Integer.parseInt(params[1]);
@@ -103,7 +105,6 @@ public class Peer {
 				
 			case LEAVE:
 				if (!Joined) continue;
-				userInput = null;
 				Leave();
 				break;
 				
@@ -144,7 +145,7 @@ public class Peer {
 	private static void Join() throws IOException {
 		UDPSocket = new DatagramSocket(Port, Address);
 		
-		List<String> fileNames = FileService.getFilesFromPath(FileFolderPath);
+		List<String> fileNames = FileService.GetFilesFromPath(FileFolderPath);
 		
 		JoinRequest request = new JoinRequest(fileNames);
 		
@@ -159,35 +160,62 @@ public class Peer {
 				" com arquivos " +
 				String.join(" ", fileNames)
 			);
+			StartTCPServer();
 			Joined = true;
-			//StartTCPServer();
 		}
 	}
 	
-	private static void Search(String fileName) throws IOException {
-		SearchRequest request = new SearchRequest(fileName);
+	private static void Search() throws IOException, ClassNotFoundException {
+		SearchRequest request = new SearchRequest(CurrentSearchedFileName);
 		
 		SendRequestToServer(request);
 		
-		try {
-			List<ConnectionInformation> connectionInformationPeersWithFile = ReceiveConnectionInformationListFromServer();
-			System.out.println("test");
-		}
-		catch (Exception e) {
-			e.printStackTrace();
+		List<ConnectionInformation> connectionInformationPeersWithFile = ReceiveConnectionInformationListFromServer();
+		
+		System.out.println("peers com arquivo solicitado:");
+		for(ConnectionInformation connectionInformation : connectionInformationPeersWithFile) {
+			System.out.println(connectionInformation.Address.toString() + ":" + Integer.toString(connectionInformation.Port));
 		}
 	}
 	
-	private static void Download(InetAddress seederAddress, int seederPort) {
+	private static void Download(InetAddress seederAddress, int seederPort) throws IOException {
+		Socket seederConnection = new Socket(seederAddress, seederPort);
+		
+		OutputStream os = seederConnection.getOutputStream();
+		DataOutputStream serverWriter = new DataOutputStream(os);
+
+		// Send fileName as a line
+		serverWriter.writeBytes(CurrentSearchedFileName + "\n");
+
+		// Start File receive procedure
+		int bytes = 0;
+		FileOutputStream fileOutputStream = new FileOutputStream(Paths.get(FileFolderPath, CurrentSearchedFileName).toString());
+		
+		DataInputStream dataInputStream = new DataInputStream(seederConnection.getInputStream());
+		
+		// Receive File size
+		long size = dataInputStream.readLong();
+		byte[] buffer = new byte[4*1024];
+		while (size > 0 && (bytes = dataInputStream.read(buffer, 0, (int)Math.min(buffer.length, size))) != -1) {
+            fileOutputStream.write(buffer,0,bytes);
+            size -= bytes;      // read upto file size
+        }
+        fileOutputStream.close();
+		
+		seederConnection.close();
 		
 	}
 	
-	private static void Leave() {
+	private static void Leave() throws IOException {
+		LeaveRequest request = new LeaveRequest();
+		
+		SendRequestToServer(request);
+		
 		Joined = false;
 	}
 	
 	private static void StartTCPServer() throws IOException {
-		PeerServer peerServerThread = new PeerServer(Address, Port);
+		PeerServer peerServerThread = new PeerServer(Address, Port, FileFolderPath);
 		peerServerThread.start();
 	}
 }

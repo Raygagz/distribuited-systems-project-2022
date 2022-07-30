@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.List;
 
 import Communication.Messages;
@@ -71,7 +72,8 @@ public class RequestHandlerThread extends Thread {
 	}
 	
 	private void PeerJoin(JoinRequest request) throws IOException {
-		PeerInformation peerInformation = new PeerInformation(PeerConnectionInformation, request.FileNames);
+		List<String> peerFileNames = (request.FileNames != null ? request.FileNames : new ArrayList<String>());
+		PeerInformation peerInformation = new PeerInformation(PeerConnectionInformation, peerFileNames);
 		Server.AddPeerInformation(peerInformation);
 
 		System.out.println(
@@ -92,6 +94,13 @@ public class RequestHandlerThread extends Thread {
 	
 	private void PeerSearch(SearchRequest request) throws IOException {
 		List<ConnectionInformation> connectionInformations = Server.SearchFileName(request.FileName);
+		
+		System.out.println(
+			"Peer " +
+			PeerConnectionInformation.Address.toString() + ":" + Integer.toString(PeerConnectionInformation.Port) +
+			" solicitou arquivo " +
+			request.FileName
+		);
 		
 		SendToPeer(connectionInformations);
 	}

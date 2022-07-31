@@ -34,7 +34,6 @@ public class ConnectionInformation implements Serializable {
 		return (
 			this.Address.toString().compareTo(that.Address.toString()) == 0 &&
 			this.Port == that.Port
-		);
-				
+		);	
 	}
 }

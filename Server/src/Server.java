@@ -4,6 +4,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,23 +17,28 @@ class Server {
 	private static List<PeerInformation> Peers = new ArrayList<PeerInformation>();
 
 	public static void main (String args[]) throws Exception {
-		// Vários clientes conseguem acessar um socket static?
-		DatagramSocket socket = new DatagramSocket(ServerInformation.ConnectionInformation.Port, ServerInformation.ConnectionInformation.Address);
+		DatagramSocket UDPSocket = new DatagramSocket(ServerInformation.ConnectionInformation.Port, ServerInformation.ConnectionInformation.Address);
+		StartAliveRequestSender();
 		
 		while (true) {
-			DatagramPacket receivedPacket = new DatagramPacket(new byte[1024], 1024);
-			socket.receive(receivedPacket);
-			
-			ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(receivedPacket.getData()));
-			Request request = (Request) inputStream.readObject();
-			inputStream.close();
-
-			ConnectionInformation peerConnectionInformation = new ConnectionInformation(receivedPacket.getAddress(), receivedPacket.getPort());;
-			
-			RequestHandlerThread thread = new RequestHandlerThread(socket, request, peerConnectionInformation);
-			thread.start();
+			try {
+				DatagramPacket receivedPacket = new DatagramPacket(new byte[1024], 1024);
+				UDPSocket.receive(receivedPacket);
+				
+				ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(receivedPacket.getData()));
+				Request request = (Request) inputStream.readObject();
+				inputStream.close();
+	
+				ConnectionInformation peerConnectionInformation = new ConnectionInformation(receivedPacket.getAddress(), receivedPacket.getPort());
+				
+				RequestHandlerThread thread = new RequestHandlerThread(UDPSocket, request, peerConnectionInformation);
+				thread.start();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
+
 	
 	private static PeerInformation GetPeerInformation(ConnectionInformation connectionInformation) {
 		for(PeerInformation peerInformation : Peers) {
@@ -40,6 +46,7 @@ class Server {
 				return peerInformation;
 			}
 		}
+		// throw new PeerNotFoundException();
 		return null;
 	}
 	
@@ -54,19 +61,38 @@ class Server {
 	}
 	
 	public static List<ConnectionInformation> SearchFileName(String fileName) {
-		List<ConnectionInformation> connectionInformations = new ArrayList<ConnectionInformation>();
+		List<ConnectionInformation> connectionsInformation = new ArrayList<ConnectionInformation>();
 		
 		for(PeerInformation peerInformation : Peers) {
 			if(peerInformation.FileNames.contains(fileName)) {
-				connectionInformations.add(peerInformation.ConnectionInformation);
+				connectionsInformation.add(peerInformation.ConnectionInformation);
 			}
 		}
 		
-		return connectionInformations;
+		return connectionsInformation;
+	}
+	
+	public static List<String> GetPeerFileNames(ConnectionInformation connectionInformation) {
+		PeerInformation peerInformation = GetPeerInformation(connectionInformation);
+		if(peerInformation != null) {
+			return peerInformation.FileNames;
+		}
+		else {
+			return new ArrayList<String>();
+		}
 	}
 	
 	public static void AddToPeerInformation(ConnectionInformation connectionInformation, String fileName) {
 		PeerInformation peerInformation = GetPeerInformation(connectionInformation);
 		peerInformation.FileNames.add(fileName);
+	}
+	
+	public static List<PeerInformation> GetAllPeersInformation() {
+		return Peers;
+	}
+
+	private static void StartAliveRequestSender() throws SocketException {
+		AliveRequestSenderThread aliveHandler = new AliveRequestSenderThread();
+		aliveHandler.start();
 	}
 }

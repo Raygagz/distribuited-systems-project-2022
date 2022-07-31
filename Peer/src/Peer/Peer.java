@@ -14,6 +14,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
@@ -26,6 +27,7 @@ import Requests.JoinRequest;
 import Requests.LeaveRequest;
 import Requests.Request;
 import Requests.SearchRequest;
+import Requests.UpdateRequest;
 import Server.PeerServer;
 import Services.DispatcherService;
 import Services.FileService;
@@ -161,6 +163,7 @@ public class Peer {
 				String.join(" ", fileNames)
 			);
 			StartTCPServer();
+			StartAliveRequestHandler();
 			Joined = true;
 		}
 	}
@@ -204,6 +207,9 @@ public class Peer {
 		
 		seederConnection.close();
 		
+		UpdateRequest request = new UpdateRequest(CurrentSearchedFileName);
+		SendRequestToServer(request);
+		
 	}
 	
 	private static void Leave() throws IOException {
@@ -211,11 +217,22 @@ public class Peer {
 		
 		SendRequestToServer(request);
 		
-		Joined = false;
+		String response = ReceiveMessageFromServer();
+		if(response.equals(Messages.SuccessfulLeave)) {
+			//CloseTCPServer();
+			//CloseAliveRequestHandler();
+			
+			Joined = false;
+		}
 	}
 	
 	private static void StartTCPServer() throws IOException {
 		PeerServer peerServerThread = new PeerServer(Address, Port, FileFolderPath);
 		peerServerThread.start();
+	}
+	
+	private static void StartAliveRequestHandler() throws SocketException {
+		AliveRequestHandlerThread aliveHandler = new AliveRequestHandlerThread(Address, Port);
+		aliveHandler.start();
 	}
 }

@@ -13,6 +13,16 @@ import Networking.ServerInformation;
 import Requests.Request;
 
 public class DispatcherService {
+	public static void UDPSend(DatagramSocket originSocket, ConnectionInformation destinationConnectionInformation, String message) throws IOException {
+		try {
+			byte[] outputBytes = message.getBytes();
+			DatagramPacket outputPacket = new DatagramPacket(outputBytes, outputBytes.length, destinationConnectionInformation.Address, destinationConnectionInformation.Port);
+			originSocket.send(outputPacket);
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	public static void UDPSend(DatagramSocket originSocket, ConnectionInformation destinationConnectionInformation, Object object) throws IOException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		ObjectOutputStream oos = new ObjectOutputStream(outputStream);

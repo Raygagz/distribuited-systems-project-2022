@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,15 +58,8 @@ public class RequestHandlerThread extends Thread {
 		}
 	}
 	
-	private void SendToPeer(String message){
-		try {
-			byte[] outputBytes = message.getBytes();
-			DatagramPacket outputPacket = new DatagramPacket(outputBytes, outputBytes.length, PeerConnectionInformation.Address, PeerConnectionInformation.Port);
-			ServerSocket.send(outputPacket);
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
+	private void SendToPeer(String message) throws IOException {
+		DispatcherService.UDPSend(ServerSocket, PeerConnectionInformation, message);
 	}
 	private void SendToPeer(Object object) throws IOException {
 		DispatcherService.UDPSend(ServerSocket, PeerConnectionInformation, object);
@@ -82,7 +76,7 @@ public class RequestHandlerThread extends Thread {
 				" adicionado com " +
 				String.join(" ", request.FileNames)
 			);
-			
+		
 		SendToPeer(Messages.SuccessfulJoin);
 	}
 	
@@ -93,7 +87,7 @@ public class RequestHandlerThread extends Thread {
 	}
 	
 	private void PeerSearch(SearchRequest request) throws IOException {
-		List<ConnectionInformation> connectionInformations = Server.SearchFileName(request.FileName);
+		List<ConnectionInformation> connectionsInformation = Server.SearchFileName(request.FileName);
 		
 		System.out.println(
 			"Peer " +
@@ -102,7 +96,7 @@ public class RequestHandlerThread extends Thread {
 			request.FileName
 		);
 		
-		SendToPeer(connectionInformations);
+		SendToPeer(connectionsInformation);
 	}
 	
 	private void PeerUpdate(UpdateRequest request) throws IOException {

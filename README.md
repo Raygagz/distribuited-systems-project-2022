@@ -7,10 +7,10 @@ To-do:
 - [ ] File directory not found
 - [ ] Repeat on fail (JOIN, LEAVE, UPDATE, ALIVE, SEARCH)
 - [ ] Peer denying request
-- [ ] Peer checking for file before replying
+- [x] Peer checking for file before replying
 - [ ] After being rejected try another
-- [ ] Download complete message
-- [ ] rejected download message
+- [x] Download complete message
+- [x] Rejected download message
 - [ ] perguntar do input do ip e port do servidor
 - [ ] Add comments to code
 - [ ] Refactor do only have Servidor, Peer and Message
@@ -25,11 +25,13 @@ To-do:
 	- Mention references (Stack overflow and Redes de Computadores)
 
 proteger servidor de peers que ele não conhece (caiu e voltou -> o peer vira um leecher)
+(Peer não sabe que saiu)
 
 Known issues:
 	file names with spaces in it
 	UDP alive uses another port with +1 value (could overflow or make weird bugs)
 	No "Unsuccessful messages" so there's no way to know if the server actually did something
+	Could do byte operations but chose to have a DownloadAllowed message
 
 JOIN 127.0.0.1 3483 ./files1
 
@@ -38,6 +40,3 @@ JOIN 127.0.0.1 4395 ./files2
 SEARCH franceEspacoQuebra.mp4
 
 DOWNLOAD 127.0.0.1 3483
-
-
-

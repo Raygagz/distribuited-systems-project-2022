@@ -38,6 +38,8 @@ JOIN 127.0.0.1 3483 ./files1
 
 JOIN 127.0.0.1 4395 ./files2
 
-SEARCH franceEspacoQuebra.mp4
+JOIN 127.0.0.1 7876 ./files3
 
-DOWNLOAD 127.0.0.1 3483
+SEARCH test3.txt.txt
+
+DOWNLOAD 127.0.0.1 7876

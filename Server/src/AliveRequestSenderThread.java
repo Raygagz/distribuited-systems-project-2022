@@ -3,9 +3,9 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
-import java.util.List;
 
 import Communication.Messages;
+import Communication.Sizes;
 import Networking.ConnectionInformation;
 import Networking.ServerInformation;
 import Requests.AliveRequest;
@@ -21,14 +21,14 @@ public class AliveRequestSenderThread extends Thread {
 	
 	public void run() {
 		try {
-			DatagramPacket responsePacket = new DatagramPacket(new byte[1024], 1024);
+			DatagramPacket responsePacket = new DatagramPacket(new byte[Sizes.UDPMaxPacketSize], Sizes.UDPMaxPacketSize);
 
 			String response;
 			
 			while(true) {
 				Thread.sleep(30000);
-				List<PeerInformation> peersInformation = Server.GetAllPeersInformation();
-				List<ConnectionInformation> toRemove = new ArrayList<ConnectionInformation>();
+				ArrayList<PeerInformation> peersInformation = Server.GetAllPeersInformation();
+				ArrayList<ConnectionInformation> toRemove = new ArrayList<ConnectionInformation>();
 				
 				for(PeerInformation peerInformation : peersInformation) {
 					toRemove.add(peerInformation.ConnectionInformation);

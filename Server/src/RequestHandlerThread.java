@@ -1,14 +1,6 @@
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.List;
 
 import Communication.Messages;
 import Networking.ConnectionInformation;
@@ -66,7 +58,7 @@ public class RequestHandlerThread extends Thread {
 	}
 	
 	private void PeerJoin(JoinRequest request) throws IOException {
-		List<String> peerFileNames = (request.FileNames != null ? request.FileNames : new ArrayList<String>());
+		ArrayList<String> peerFileNames = (request.FileNames != null ? request.FileNames : new ArrayList<String>());
 		PeerInformation peerInformation = new PeerInformation(PeerConnectionInformation, peerFileNames);
 		Server.AddPeerInformation(peerInformation);
 
@@ -87,7 +79,7 @@ public class RequestHandlerThread extends Thread {
 	}
 	
 	private void PeerSearch(SearchRequest request) throws IOException {
-		List<ConnectionInformation> connectionsInformation = Server.SearchFileName(request.FileName);
+		ArrayList<ConnectionInformation> connectionsInformation = Server.SearchFileName(request.FileName);
 		
 		System.out.println(
 			"Peer " +

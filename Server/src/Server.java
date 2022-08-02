@@ -2,19 +2,16 @@ import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.List;
 
+import Communication.Sizes;
 import Networking.ConnectionInformation;
 import Networking.ServerInformation;
 import Requests.Request;
-import Services.DispatcherService;
 
 class Server {
-	private static List<PeerInformation> Peers = new ArrayList<PeerInformation>();
+	private static ArrayList<PeerInformation> Peers = new ArrayList<PeerInformation>();
 
 	public static void main (String args[]) throws Exception {
 		DatagramSocket UDPSocket = new DatagramSocket(ServerInformation.ConnectionInformation.Port, ServerInformation.ConnectionInformation.Address);
@@ -22,7 +19,7 @@ class Server {
 		
 		while (true) {
 			try {
-				DatagramPacket receivedPacket = new DatagramPacket(new byte[1024], 1024);
+				DatagramPacket receivedPacket = new DatagramPacket(new byte[Sizes.UDPMaxPacketSize], Sizes.UDPMaxPacketSize);
 				UDPSocket.receive(receivedPacket);
 				
 				ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(receivedPacket.getData()));
@@ -60,8 +57,8 @@ class Server {
 		Peers.removeIf(p -> (p.ConnectionInformation.equals(connectionInformation)));
 	}
 	
-	public static List<ConnectionInformation> SearchFileName(String fileName) {
-		List<ConnectionInformation> connectionsInformation = new ArrayList<ConnectionInformation>();
+	public static ArrayList<ConnectionInformation> SearchFileName(String fileName) {
+		ArrayList<ConnectionInformation> connectionsInformation = new ArrayList<ConnectionInformation>();
 		
 		for(PeerInformation peerInformation : Peers) {
 			if(peerInformation.FileNames.contains(fileName)) {
@@ -72,7 +69,7 @@ class Server {
 		return connectionsInformation;
 	}
 	
-	public static List<String> GetPeerFileNames(ConnectionInformation connectionInformation) {
+	public static ArrayList<String> GetPeerFileNames(ConnectionInformation connectionInformation) {
 		PeerInformation peerInformation = GetPeerInformation(connectionInformation);
 		if(peerInformation != null) {
 			return peerInformation.FileNames;
@@ -87,7 +84,7 @@ class Server {
 		peerInformation.FileNames.add(fileName);
 	}
 	
-	public static List<PeerInformation> GetAllPeersInformation() {
+	public static ArrayList<PeerInformation> GetAllPeersInformation() {
 		return Peers;
 	}
 

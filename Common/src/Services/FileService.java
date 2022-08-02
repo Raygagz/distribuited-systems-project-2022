@@ -2,14 +2,14 @@ package Services;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 public class FileService {
-	public static List<String> GetFilesFromPath(String path) {
+	public static ArrayList<String> GetFilesFromPath(String path) {
 		File directoryPath = new File(path);
 		if(directoryPath.isDirectory()) {
-			return Arrays.asList(directoryPath.list());
+			return new ArrayList<String>(Arrays.asList(directoryPath.list()));
 		}
 		
 		return null;

@@ -8,36 +8,35 @@ import java.net.InetAddress;
 import java.net.SocketException;
 
 import Communication.Messages;
+import Communication.Sizes;
 import Networking.ConnectionInformation;
-import Networking.ServerInformation;
 import Requests.AliveRequest;
-import Requests.Request;
 import Services.DispatcherService;
 
 public class AliveRequestHandlerThread extends Thread {
-	private DatagramSocket UDPSocket;
+	public DatagramSocket UDPAliveSocket;
 	
 	public AliveRequestHandlerThread(InetAddress address, int port) throws SocketException {
-		this.UDPSocket = new DatagramSocket(port+1, address);
+		this.UDPAliveSocket = new DatagramSocket(port+1, address);
 	}
 	
 	public void run() {
 		try {
-			while (true) {
-				DatagramPacket receivedPacket = new DatagramPacket(new byte[1024], 1024);
-				UDPSocket.receive(receivedPacket);
+			while (!UDPAliveSocket.isClosed()) {
+				DatagramPacket receivedPacket = new DatagramPacket(new byte[Sizes.UDPMaxPacketSize], Sizes.UDPMaxPacketSize);
+				UDPAliveSocket.receive(receivedPacket);
 				
 				ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(receivedPacket.getData()));
 				AliveRequest request = (AliveRequest) inputStream.readObject();
 				inputStream.close();
 				
 				ConnectionInformation serverConnectionInformation = new ConnectionInformation(receivedPacket.getAddress(), receivedPacket.getPort());
-				DispatcherService.UDPSend(UDPSocket, serverConnectionInformation, Messages.Alive);
+				DispatcherService.UDPSend(UDPAliveSocket, serverConnectionInformation, Messages.Alive);
 				
 				inputStream.close();
 			}
-		}
-		catch (Exception e) {
+		} catch (SocketException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}

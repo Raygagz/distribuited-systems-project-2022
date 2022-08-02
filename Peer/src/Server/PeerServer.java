@@ -3,9 +3,10 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 
 public class PeerServer extends Thread {
-	private final ServerSocket ServerSocket;
+	public final ServerSocket ServerSocket;
 	private final String FileFolderPath;
 	
 	public PeerServer(InetAddress address, int port, String fileFolderPath) throws IOException {
@@ -15,12 +16,13 @@ public class PeerServer extends Thread {
 	
 	public void run() {
 		try {
-			while (true) {
+			while (!ServerSocket.isClosed()) {
 				Socket socket;
 				socket = ServerSocket.accept();
 				RequestHandlerThread thread = new RequestHandlerThread(socket, FileFolderPath);
 				thread.start();
 			}
+		} catch (SocketException e) {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

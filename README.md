@@ -15,7 +15,7 @@ To-do:
 - [ ] Refactor do only have Servidor, Peer and Message
 - [ ] Take care of duplicates on the server
 - [ ] Fix memory leaks
-- [ ] Report (11201721028.pdf)
+- [x] Report (11201721028.pdf)
 	- Name and ID
 	- Link for video
 		- 3min max

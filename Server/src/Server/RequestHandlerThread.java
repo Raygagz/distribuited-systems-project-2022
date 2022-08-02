@@ -1,22 +1,26 @@
+package Server;
 import java.io.IOException;
 import java.net.DatagramSocket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 
-import Communication.Messages;
 import Networking.ConnectionInformation;
+import Networking.Messages;
 import Requests.JoinRequest;
 import Requests.LeaveRequest;
 import Requests.Request;
 import Requests.SearchRequest;
 import Requests.UpdateRequest;
 import Services.DispatcherService;
+import info.PeerInformation;
 
 public class RequestHandlerThread extends Thread {
 	private final DatagramSocket ServerSocket;
 	private final ConnectionInformation PeerConnectionInformation;
 	private final Request Request;
 	
-	public RequestHandlerThread(DatagramSocket serverSocket, Request request, ConnectionInformation peerConnectionInformation) {
+	public RequestHandlerThread(DatagramSocket serverSocket, Request request, ConnectionInformation peerConnectionInformation) throws SocketException {
 		this.ServerSocket = serverSocket;
 		this.PeerConnectionInformation = peerConnectionInformation;
 		this.Request = request;

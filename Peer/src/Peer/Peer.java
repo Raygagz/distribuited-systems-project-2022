@@ -15,14 +15,16 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import Communication.Messages;
-import Communication.Sizes;
+import Configurations.Configuration;
 import Enums.RequestType;
+import Networking.Configurations;
 import Networking.ConnectionInformation;
+import Networking.Messages;
 import Networking.ServerInformation;
 import Requests.JoinRequest;
 import Requests.LeaveRequest;
@@ -54,6 +56,7 @@ public class Peer {
 		String[] params = null;
 		
 		do{
+			// Prints menu
 			System.out.println(
 				"JOIN <address> <port> <pathToFolderWithFiles>\n" +
 				"SEARCH <fileName>\n" +
@@ -61,6 +64,7 @@ public class Peer {
 				"LEAVE"
 			);
 			
+			// Splits the user input by spaces and tries to parse the selected option and additional params
 			userInput = consoleReader.readLine().split(" ");
 			try {
 	            selection = RequestType.valueOf(userInput[0]);
@@ -78,7 +82,11 @@ public class Peer {
 					Port = Integer.parseInt(params[1]);
 					FileFolderPath = params[2];
 					Join();
+				} catch (SocketTimeoutException e) {
+					// Repeat in case of a Timeout
+					Join();
 				} catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+					// Bad input format
 					e.printStackTrace();
 					continue;
 				}
@@ -89,7 +97,11 @@ public class Peer {
 				try {
 					CurrentSearchedFileName = params[0];
 					Search();
+				} catch (SocketTimeoutException e) {
+					// Repeat in case of a Timeout
+					Search();
 				} catch (ArrayIndexOutOfBoundsException e) {
+					// Bad input format
 					e.printStackTrace();
 					continue;
 				}
@@ -98,18 +110,30 @@ public class Peer {
 			case DOWNLOAD:
 				if (!Joined || CurrentSearchedFileName == null) continue;
 				try {
-					InetAddress seederAddress = InetAddress.getByName(params[0]);
-					int seederPort = Integer.parseInt(params[1]);
-					Download(seederAddress, seederPort);
+					ConnectionInformation seederConnectionInformation = new ConnectionInformation(InetAddress.getByName(params[0]), Integer.parseInt(params[1]));
+					try {
+						Download(seederConnectionInformation);
+					} catch (SocketTimeoutException e) {
+						// Repeat in case of a Timeout
+						Download(seederConnectionInformation);
+					}
 				} catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+					// Bad input format
 					e.printStackTrace();
 					continue;
 				}
+
 				break;
 				
 			case LEAVE:
 				if (!Joined) continue;
-				Leave();
+				try {
+					Leave();
+				} catch (SocketTimeoutException e) {
+					// Repeat in case of a Timeout
+					Leave();
+				}
+				
 				break;
 				
 			default:
@@ -127,34 +151,26 @@ public class Peer {
 	}
 	
 	private static String ReceiveMessageFromServer() throws IOException {
-		byte[] buffer = new byte[Sizes.UDPMaxPacketSize];
-		DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
-		UDPSocket.receive(responsePacket);
-
-		String response = new String(responsePacket.getData(), 0, responsePacket.getLength());
-		return response;
+		return DispatcherService.UDPReceiveString(UDPSocket).String;
 	}
 	
 	private static ArrayList<ConnectionInformation> ReceiveConnectionInformationListFromServer() throws IOException, ClassNotFoundException {
-		DatagramPacket receivedPacket = new DatagramPacket(new byte[Sizes.UDPMaxPacketSize], Sizes.UDPMaxPacketSize);
-		UDPSocket.receive(receivedPacket);
-		
-		ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(receivedPacket.getData()));
-		ArrayList<ConnectionInformation> connectionInformations = (ArrayList<ConnectionInformation>) inputStream.readObject();
-		inputStream.close();
-		
-		return connectionInformations;
+		return (ArrayList<ConnectionInformation>) DispatcherService.UDPReceiveObject(UDPSocket).Object;
 	}
 	
 	private static void Join() throws IOException {
+		// Creates a new UDPSocket for the peer
 		UDPSocket = new DatagramSocket(Port, Address);
+		UDPSocket.setSoTimeout(Configuration.TimeOutMilliseconds);
 		
+		// Gets the file names from the input folder
 		ArrayList<String> fileNames = FileService.GetFilesFromPath(FileFolderPath);
 		
+		// Creates and sends a Join request to server
 		JoinRequest request = new JoinRequest(fileNames);
-		
 		SendRequestToServer(request);
 
+		// Receives reply from the server
 		String response = ReceiveMessageFromServer();
 		
 		if(response.equals(Messages.SuccessfulJoin)) {
@@ -172,7 +188,6 @@ public class Peer {
 	
 	private static void Search() throws IOException, ClassNotFoundException {
 		SearchRequest request = new SearchRequest(CurrentSearchedFileName);
-		
 		SendRequestToServer(request);
 		
 		ConnectionInformationPeersWithFile = ReceiveConnectionInformationListFromServer();
@@ -183,8 +198,8 @@ public class Peer {
 		}
 	}
 	
-	private static void Download(InetAddress seederAddress, int seederPort) throws IOException {
-		Socket seederConnection = new Socket(seederAddress, seederPort);
+	private static void Download(ConnectionInformation seederConnectionInformation) throws IOException {
+		Socket seederConnection = new Socket(seederConnectionInformation.Address, seederConnectionInformation.Port);
 		
 		OutputStream os = seederConnection.getOutputStream();
 		DataOutputStream serverWriter = new DataOutputStream(os);
@@ -206,7 +221,7 @@ public class Peer {
 			// Receive File size
 			long size = dataInputStream.readLong();
 			
-			byte[] buffer = new byte[Sizes.TCPPacketSize];
+			byte[] buffer = new byte[Configurations.TCPPacketSize];
 			while (size > 0 && (bytes = dataInputStream.read(buffer, 0, (int)Math.min(buffer.length, size))) != -1) {
 	            fileOutputStream.write(buffer,0,bytes);
 	            size -= bytes;      // read upto file size
@@ -222,28 +237,42 @@ public class Peer {
 			
 			seederConnection.close();
 			
+			// If the download was successful creates and send an Update request to the peer
 			UpdateRequest request = new UpdateRequest(CurrentSearchedFileName);
-			SendRequestToServer(request);
+			String response = null;
 			
-			String response = ReceiveMessageFromServer();
+			try {
+				SendRequestToServer(request);
+				response = ReceiveMessageFromServer();
+			} catch (SocketTimeoutException e) {
+				// Repeat in case of a Timeout
+				SendRequestToServer(request);
+				response = ReceiveMessageFromServer();
+			}
 			
 			if(response.equals(Messages.SuccessfulUpdate)) {
 			}
 		} else {
-			System.out.println(
-					"peer " +
-					seederAddress.toString() + ":" + Integer.toString(seederPort) +
-					" negou o download, pedindo agora para o peer "
-				);
+			if (ConnectionInformationPeersWithFile != null && ConnectionInformationPeersWithFile.size() > 0) {
+				ConnectionInformation newSeederConnectionInformation = ConnectionInformationPeersWithFile.get(0);
+				
+				System.out.println(
+						"peer " +
+								newSeederConnectionInformation.Address.toString() + ":" + Integer.toString(newSeederConnectionInformation.Port) +
+						" negou o download, pedindo agora para o peer "
+					);
+				Download(newSeederConnectionInformation);
+			}
+			
 		}
 	}
 	
 	private static void Leave() throws IOException {
 		LeaveRequest request = new LeaveRequest();
-		
 		SendRequestToServer(request);
 		
 		String response = ReceiveMessageFromServer();
+		
 		if(response.equals(Messages.SuccessfulLeave)) {
 			CloseTCPServer();
 			CloseAliveRequestHandler();
@@ -251,7 +280,9 @@ public class Peer {
 			Joined = false;
 		}
 	}
-	
+
+
+	// This server coordinates TCP Peer to Peer connections
 	private static void StartTCPServer() throws IOException {
 		PeerServer TCPServerThread = new PeerServer(Address, Port, FileFolderPath);
 		TCPServerSocket = TCPServerThread.ServerSocket;
@@ -262,6 +293,8 @@ public class Peer {
 		TCPServerSocket.close();
 	}
 	
+
+	// Starts Thread to handle Alive requests from the server
 	private static void StartAliveRequestHandler() throws SocketException {
 		AliveRequestHandlerThread UDPAliveThread = new AliveRequestHandlerThread(Address, Port);
 		UDPAliveSocket = UDPAliveThread.UDPAliveSocket;

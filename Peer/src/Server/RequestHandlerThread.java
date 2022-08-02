@@ -9,8 +9,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 
-import Communication.Messages;
-import Communication.Sizes;
+import Networking.Configurations;
+import Networking.Messages;
 import Services.FileService;
 
 public class RequestHandlerThread extends Thread {
@@ -32,12 +32,15 @@ public class RequestHandlerThread extends Thread {
 			String fileName = br.readLine();
 			File file = FileService.GetFileFromFolder(FileFolderPath, fileName);
 			
-			// Denies download if the peer doesn't have the file or randomly with a 50% chance
+			// Denies download if the peer doesn't have the file
+			// or randomly with a 50% chance and sends a message accordingly
 			if(!file.exists() || Math.random() < 0.5) {
 				outputWriter.writeBytes(Messages.DownloadDenied + "\n");
 			} else {
 				outputWriter.writeBytes(Messages.DownloadAllowed + "\n");
+				
 				// Start file sending procedure
+				// https://heptadecane.medium.com/file-transfer-via-java-sockets-e8d4f30703a5
 				int bytes = 0;
 				FileInputStream fileInputStream = new FileInputStream(file);
 				
@@ -45,8 +48,9 @@ public class RequestHandlerThread extends Thread {
 				
 				// Send File size
 				dataOutputStream.writeLong(file.length());
-				// Break file into chunks
-				byte[] buffer = new byte[Sizes.TCPPacketSize];
+				
+				// Break file into chunks and send every chunk
+				byte[] buffer = new byte[Configurations.TCPPacketSize];
 				while ((bytes=fileInputStream.read(buffer))!=-1){
 		            dataOutputStream.write(buffer,0,bytes);
 		            dataOutputStream.flush();
@@ -59,10 +63,5 @@ public class RequestHandlerThread extends Thread {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-	
-	public void SendToClient(byte[] bytesToSend) throws IOException {
-		DataOutputStream outputStream = new DataOutputStream(ConnectionToClient.getOutputStream());
-		outputStream.write(bytesToSend, 0, bytesToSend.length);
 	}
 }

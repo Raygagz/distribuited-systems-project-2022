@@ -18,11 +18,15 @@ public class PeerServer extends Thread {
 		try {
 			while (!ServerSocket.isClosed()) {
 				Socket socket;
+				// Listens to peers trying to connect over TCP
 				socket = ServerSocket.accept();
+				
+				// Open a new thread for the connection
 				RequestHandlerThread thread = new RequestHandlerThread(socket, FileFolderPath);
 				thread.start();
 			}
 		} catch (SocketException e) {
+			// In case of an interruption (Peer leaving the network)
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

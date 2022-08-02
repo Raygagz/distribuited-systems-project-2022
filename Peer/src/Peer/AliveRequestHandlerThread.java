@@ -7,9 +7,10 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 
-import Communication.Messages;
-import Communication.Sizes;
+import Networking.Configurations;
 import Networking.ConnectionInformation;
+import Networking.Messages;
+import Networking.ReceivedObject;
 import Requests.AliveRequest;
 import Services.DispatcherService;
 
@@ -23,19 +24,16 @@ public class AliveRequestHandlerThread extends Thread {
 	public void run() {
 		try {
 			while (!UDPAliveSocket.isClosed()) {
-				DatagramPacket receivedPacket = new DatagramPacket(new byte[Sizes.UDPMaxPacketSize], Sizes.UDPMaxPacketSize);
-				UDPAliveSocket.receive(receivedPacket);
+				// Receives an Alive Request and sends an Alive confirmation to the server
+				ReceivedObject receivedObject = DispatcherService.UDPReceiveObject(UDPAliveSocket);
 				
-				ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(receivedPacket.getData()));
-				AliveRequest request = (AliveRequest) inputStream.readObject();
-				inputStream.close();
+				AliveRequest request = (AliveRequest) receivedObject.Object;
 				
-				ConnectionInformation serverConnectionInformation = new ConnectionInformation(receivedPacket.getAddress(), receivedPacket.getPort());
+				ConnectionInformation serverConnectionInformation = new ConnectionInformation(receivedObject.OriginAddress, receivedObject.OriginPort);
 				DispatcherService.UDPSend(UDPAliveSocket, serverConnectionInformation, Messages.Alive);
-				
-				inputStream.close();
 			}
 		} catch (SocketException e) {
+			// In case of an interruption (Peer leaving the network)
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

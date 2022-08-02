@@ -1,3 +1,4 @@
+package info;
 import java.util.ArrayList;
 
 import Networking.ConnectionInformation;

@@ -5,15 +5,16 @@ Peer 2 Peer centralized file sharing system
 To-do:
 - [ ] Treat Join request from a Peer already in the system
 - [ ] File directory not found
-- [ ] Repeat on fail (JOIN, LEAVE, UPDATE, ALIVE, SEARCH)
-- [ ] Peer denying request
+- [x] Repeat on fail (JOIN, LEAVE, UPDATE, ALIVE, SEARCH)
+- [x] Peer denying request
 - [x] Peer checking for file before replying
-- [ ] After being rejected try another
+- [x] After being rejected try another
 - [x] Download complete message
 - [x] Rejected download message
-- [ ] perguntar do input do ip e port do servidor
 - [ ] Add comments to code
 - [ ] Refactor do only have Servidor, Peer and Message
+- [ ] Take care of duplicates on the server
+- [ ] Fix memory leaks
 - [ ] Report (11201721028.pdf)
 	- Name and ID
 	- Link for video

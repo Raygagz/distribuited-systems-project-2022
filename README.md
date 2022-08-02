@@ -11,10 +11,10 @@ To-do:
 - [x] After being rejected try another
 - [x] Download complete message
 - [x] Rejected download message
-- [ ] perguntar do input do ip e port do servidor
 - [ ] Add comments to code
 - [ ] Refactor do only have Servidor, Peer and Message
 - [ ] Take care of duplicates on the server
+- [ ] Fix memory leaks
 - [ ] Report (11201721028.pdf)
 	- Name and ID
 	- Link for video
